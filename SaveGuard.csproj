@@ -17,7 +17,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="analysis\**" />
+    <Compile Remove="AccurateVoiceInput\**" />
+    <Compile Remove="AccurateVoiceInput.Tests\**" />
+    <Compile Remove="SaveGuard.Tests\**" />
+    <None Remove="analysis\**" />
+    <None Remove="AccurateVoiceInput\**" />
+    <None Remove="AccurateVoiceInput.Tests\**" />
+    <None Remove="SaveGuard.Tests\**" />
+
     <Reference Include="Assembly-CSharp" HintPath="$(ManagedDir)\Assembly-CSharp.dll" Private="false" />
+
     <Reference Include="Mirror" HintPath="$(ManagedDir)\Mirror.dll" Private="false" />
     <Reference Include="BepInEx" HintPath="$(BepInExCore)\BepInEx.dll" Private="false" />
     <Reference Include="0Harmony" HintPath="$(BepInExCore)\0Harmony.dll" Private="false" />

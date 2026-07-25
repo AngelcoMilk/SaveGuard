@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1
+
+- Fixed dropdown label showing another mod's text by replacing heuristic text matching with exclusion-based label targeting
+- Changed in-game setting labels: "任务失败存档" / "物品回收率"
+- Removed in-game emergency backup toggle (still always on, configurable via file)
+- Preserved full Game Over flow with call-site-scoped deletion suppression
+- Added GitHub source link to Thunderstore metadata
+- Added bilingual README with anchor navigation
+
 ## 0.1.0
 
 - Added configurable failed-extraction item recovery with discrete 0/25/50/75/100% choices, defaulting to 100%.

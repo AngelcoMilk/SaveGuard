@@ -6,6 +6,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../SaveGuard/SaveGuardPolicy.cs" Link="SaveGuardPolicy.cs" />
+    <Compile Include="../SaveGuardPolicy.cs" Link="SaveGuardPolicy.cs" />
   </ItemGroup>
 </Project>

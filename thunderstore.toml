@@ -4,9 +4,9 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "AngelcoMilk"
 name = "SaveGuard"
-versionNumber = "0.1.0"
+versionNumber = "0.1.1"
 description = "温和的失败处理：撤离失败物品默认回收 | Quota 失败保档不删档 | 安全备份 | 游戏内设置页。A gentle failure handler for YAPYAP."
-websiteUrl = ""
+websiteUrl = "https://github.com/AngelcoMilk/SaveGuard"
 containsNsfwContent = false
 [package.dependencies]
 BepInEx-BepInExPack = "5.4.2304"
