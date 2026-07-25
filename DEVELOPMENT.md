@@ -293,7 +293,241 @@ private static string Localized(string chinese, string english)
 
 ---
 
-## 6. 配置管理
+## 6. 游戏设置系统解析
+
+理解原版设置系统有助于正确注入 Mod 设置，避免破坏原版行为。
+
+### 6.1 UISettings 架构
+
+```
+UISettings (MonoBehaviour)
+├── SettingsSection[] sections    ← 页签数组，每个 Section 包含：
+│   ├── GameObject SectionObj     ← 页签对应内容面板
+│   ├── Button TabButton          ← 页签按钮
+│   └── UIFader Indictor          ← 页签选中指示器
+├── Initialise()                  ← 外部调用入口
+│   ├── ApplyAllSettings()        ← 把所有设置值生效
+│   └── InitSections()            ← 绑定页签点击 → ChangeSection
+├── Awake()                       ← 注册输入/状态监听，绑定各控件回调
+└── ChangeSection(SettingsSection) ← 切换显示，控制 Indicator 动画
+```
+
+**生命周期：**
+
+```
+场景加载 → Awake() → Initialise() → InitSections() → ChangeSection(sections[0])
+```
+
+- `Awake` 绑定所有原生控件的 `OnSettingChanged` 回调到 `SetXxx` 方法
+- `Initialise` 被外部调用（如 `YapFsm`），执行 `ApplyAllSettings` + `InitSections`
+- `InitSections` 为每个 Section 的 TabButton 绑定 `ChangeSection`，并默认打开第一个
+
+### 6.2 SettingsSection 结构
+
+```csharp
+[Serializable]
+public class SettingsSection
+{
+    public GameObject SectionObj;   // 内容面板（包含所有设置控件）
+    public Button TabButton;       // 页签按钮
+    public UIFader Indictor;       // 选中高亮指示器
+}
+```
+
+每个 Section 对应设置面板的一个页签。控件放在 `SectionObj` 的子孙节点中。`sections` 是 `[SerializeField] private` 数组，需要在 Editor 中预设。
+
+### 6.3 UISettingElement<T> 基类
+
+所有设置控件继承自：
+
+```csharp
+public abstract class UISettingElement<T> : MonoBehaviour
+{
+    protected string settingKey;            // PlayerPrefs 键名
+    protected TMP_Text valueLabel;          // 值显示文本
+    public UnityEvent<T> OnSettingChanged;  // 值变更事件
+
+    // 核心方法
+    public void SetSettingKey(string key);  // 设置 PlayerPrefs 键
+    public void SetValue(T newValue);       // 设置值 → ApplyValue + Save + 触发事件
+    public void SetValueNoNotify(T newValue); // 设置值 → ApplyValue，不触发事件
+    public void DisplayValue(T value);      // 仅刷新显示
+    public abstract void Load();            // 从 PlayerPrefs 读取
+    public virtual void Save();             // 写入 PlayerPrefs
+    protected virtual void Initialize();    // Awake 时调用，执行 Load
+}
+```
+
+**数据流：**
+
+```
+用户操作 → OnSettingChanged 触发
+  → 原生 Awake 中绑定的 SetXxx 回调（如 SetMasterVolume）
+  → 立即生效 + PlayerPrefs.Save()
+
+启动时：
+  → Awake → Initialize → Load → PlayerPrefs.GetXxx(settingKey)
+  → ApplyValue → 更新显示
+  → Initialise → ApplyAllSettings → 所有设置生效
+```
+
+### 6.4 UISettingToggle（开关控件）
+
+```csharp
+public class UISettingToggle : UISettingElement<bool>
+{
+    private MultiGraphicToggle toggle;     // Unity UI Toggle 封装
+    private LocalisedTMP localisedLabelText; // 标签本地化组件
+    private bool defaultValue;
+
+    protected override void Awake()
+    {
+        toggle.onValueChanged.AddListener(base.SetValue);
+        base.Awake();  // → Initialize → Load
+    }
+
+    public override void Load()
+    {
+        currentValue = PlayerPrefs.GetInt(settingKey, defaultValue ? 1 : 0) == 1;
+    }
+
+    public override void Save()
+    {
+        PlayerPrefs.SetInt(settingKey, currentValue ? 1 : 0);
+    }
+}
+```
+
+**关键点：**
+- `Awake` 中绑定 `toggle.onValueChanged → base.SetValue`，用户点击触发完整流程
+- `SetValue` → `SetValueInternal` → `ApplyValue` → `UpdateValueLabel` + `Save` + `OnSettingChanged`
+- `localisedLabelText` 负责标签多语言，克隆后需销毁该组件并手动设文字
+
+### 6.5 UISettingDropdown（下拉控件）
+
+```csharp
+public class UISettingDropdown : UISettingElement<int>
+{
+    private TMP_Dropdown dropdown;  // Unity TMP_Dropdown
+    private int defaultValue;
+
+    protected override void Awake()
+    {
+        dropdown.onValueChanged.AddListener(base.SetValue);
+        base.Awake();
+        // 注册 EventTrigger 处理手柄导航
+    }
+
+    public void PopulateOptions(List<string> options)
+    {
+        dropdown.ClearOptions();
+        dropdown.AddOptions(options);
+    }
+
+    public override void Load()
+    {
+        currentValue = PlayerPrefs.GetInt(settingKey, GetDefaultValue());
+    }
+
+    protected override void UpdateValueLabel(int value)
+    {
+        if (value < dropdown.options.Count && valueLabel != null)
+            valueLabel.text = dropdown.options[value].text;
+    }
+}
+```
+
+**关键点：**
+- `dropdown.captionText` 是下拉按钮上显示的当前选项文字
+- `valueLabel`（继承自基类）是额外的一个值显示 TMP_Text
+- `PopulateOptions` 需要在初始化时调用（原生在 `Awake` 中），克隆后必须手动调用
+- 下拉的 `UpdateValueLabel` 依赖 `dropdown.options` 已填充
+
+### 6.6 PlayerPrefs 与 Mod 配置的隔离
+
+**原版控件数据流：**
+
+```
+控件操作 → SetValue → Save → PlayerPrefs.SetXxx(settingKey, value)
+启动加载 → Initialize → Load → PlayerPrefs.GetXxx(settingKey, defaultValue)
+```
+
+**Mod 注入控件必须切断这个链路：**
+
+```csharp
+// 1. 清空键名，阻止 Save/Load 访问 PlayerPrefs
+control.SetSettingKey(string.Empty);
+
+// 2. 移除原版回调
+control.OnSettingChanged.RemoveAllListeners();
+
+// 3. 绑定到 BepInEx ConfigEntry
+control.OnSettingChanged.AddListener(value => {
+    Plugin.MyConfig.Value = value;
+    // ConfigEntry 自动持久化到 .cfg 文件
+});
+
+// 4. 初始化显示
+control.SetValueNoNotify(Plugin.MyConfig.Value);
+control.DisplayValue(Plugin.MyConfig.Value);
+```
+
+> **不这样做会怎样？** 克隆控件的 `settingKey` 继承自模板，会把 Mod 的值写入原版 PlayerPrefs，覆盖玩家的游戏设置。多个 Mod 克隆同一模板还会互相覆盖。
+
+### 6.7 控件模板选择
+
+注入时搜索场景中已有的控件作为模板：
+
+```csharp
+// 找一个非本 Mod 创建的控件当模板
+UISettingToggle toggleTemplate = FindObjectsByType<UISettingToggle>(
+    FindObjectsInactive.Include, FindObjectsSortMode.None)
+    .FirstOrDefault(c => c != null && !c.name.StartsWith("SaveGuard"));
+
+UISettingDropdown dropdownTemplate = FindObjectsByType<UISettingDropdown>(
+    FindObjectsInactive.Include, FindObjectsSortMode.None)
+    .FirstOrDefault(c => c != null && !c.name.StartsWith("SaveGuard"));
+```
+
+- `FindObjectsInactive.Include` 确保非激活页签里的控件也能找到
+- 排除自己创建的控件，防止取到上次注入的残留
+- 如果有多个 Mod 注入，模板可能是其他 Mod 的控件
+
+### 6.8 InitSections 注入时机
+
+```csharp
+[HarmonyPatch(typeof(UISettings), nameof(UISettings.Initialise))]
+[HarmonyPrefix]
+private static void InitialisePrefix(UISettings __instance)
+{
+    // Initialise 在 Awake 之后调用
+    // 此时 sections 已初始化，原生控件 Awake 已跑完
+    // InitSections 还未调用，可以安全扩展 sections 数组
+    TryInject(__instance);
+}
+```
+
+**为什么不在 Awake 里注入？** `Awake` 先于 `Initialise`，此时 `sections` 已填充但 `InitSections` 还没跑。在 `Initialise` 的 Prefix 注入可以确保 `InitSections` 执行时包含新 Section。
+
+### 6.9 控件值变更的生效机制
+
+原生控件通过 `OnSettingChanged` 驱动设置生效：
+
+```csharp
+// UISettings.Awake() 中的绑定示例
+masterVolumeSetting.OnSettingChanged.AddListener(SetMasterVolume);
+
+// 回调方法
+private void SetMasterVolume(float value) { /* 设置 AudioMixer */ }
+private void SetFov(float value)          { /* 调整摄像机 FOV */ }
+private void SetScreenMode(int mode)      { /* 切换全屏/窗口 */ }
+```
+
+Mod 注入时可同样利用此机制：绑定自己的回调到 `OnSettingChanged`，在回调中同时更新 BepInEx 配置和应用设置。
+
+---
+
+## 7. 配置管理
 
 ### 6.1 BepInEx 配置
 
@@ -328,7 +562,7 @@ GUID 格式：`com.author.modname`
 
 ---
 
-## 7. 兼容性
+## 8. 兼容性
 
 ### 7.1 版本守卫
 
@@ -356,7 +590,7 @@ private static bool Validate(string expectedHash)
 
 ---
 
-## 8. 测试
+## 9. 测试
 
 ### 8.1 策略层单元测试
 
@@ -388,7 +622,7 @@ private static bool Validate(string expectedHash)
 
 ---
 
-## 9. 构建与打包
+## 10. 构建与打包
 
 ### 9.1 构建脚本
 
@@ -460,7 +694,7 @@ yapyap = ["mods", "host", "qol"]
 
 ---
 
-## 10. README 规范
+## 11. README 规范
 
 ### 10.1 必要内容
 
@@ -482,7 +716,7 @@ yapyap = ["mods", "host", "qol"]
 
 ---
 
-## 11. 常见问题
+## 12. 常见问题
 
 | 问题 | 原因 | 解决 |
 |---|---|---|
