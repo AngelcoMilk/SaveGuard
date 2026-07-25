@@ -1,0 +1,16 @@
+bin/
+obj/
+build/
+dist/
+.vs/
+Debug/
+Release/
+*.user
+*.suo
+.verify-gameover-package/
+.tmp-package-check/
+.tmp-package-check2/
+.runtime-logs/
+analysis/
+AccurateVoiceInput/
+AccurateVoiceInput.Tests/
