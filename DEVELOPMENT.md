@@ -14,6 +14,7 @@
 | [Harmony](https://github.com/pardeike/Harmony) | 运行时 IL 补丁 |
 | [ilspycmd](https://github.com/icsharpcode/ILSpy) | 反编译游戏程序集 |
 | [.NET SDK](https://dotnet.microsoft.com/) | 编译模组 DLL |
+| [Native Settings UI Lib](https://thunderstore.io/c/yapyap/p/XiaohaiMod/Native_Settings_UI_Lib/) | 设置页注入库（推荐，可替代手写注入） |
 | [TCLI](https://github.com/thunderstore-io/thunderstore-cli) | Thunderstore 打包 |
 | [Thunderstore Mod Manager](https://www.overwolf.com/app/thunderstore-thunderstore_mod_manager) | 模组管理和测试 |
 
@@ -225,6 +226,48 @@ YAPYAP 使用 JSON 格式，`SaveManager` 封装读写。
 ---
 
 ## 5. 设置页注入
+
+### 5.0 推荐：使用 Native Settings UI Lib
+
+手写设置页注入涉及模板克隆、标签定位、双语刷新、PlayerPrefs 隔离、游戏内外区分等多个易错点。**推荐直接使用 [Native Settings UI Lib](https://thunderstore.io/c/yapyap/p/XiaohaiMod/Native_Settings_UI_Lib/)**（XiaohaiMod），它把这些全部封装成了简洁 API：
+
+```csharp
+var tab = NativeSettingsUI.RegisterTab(
+    guid: "com.yourmod.settings",
+    title: new LocalText("TAB", "我的设置", "My Settings"),
+    showInGame: true
+);
+
+tab.CreateToggle(
+    id: "Toggle_Enabled",
+    settingKey: "com.yourmod.Enabled",
+    title: new LocalText("TOGGLE", "启用", "Enabled"),
+    initialValue: true,
+    onChanged: v => enabled = v,
+    showInGame: true
+);
+
+tab.CreateDropdownString(
+    id: "Dropdown_Quality",
+    settingKey: "com.yourmod.Quality",
+    title: new LocalText("QUALITY", "品质", "Quality"),
+    options: new[] { "Low", "Medium", "High" },
+    initialValue: "Medium",
+    onChanged: v => quality = v,
+    showInGame: true
+);
+```
+
+**支持的控件：** `CreateButton`, `CreateLabel`, `CreateToggle`, `CreateDropdownString`, `CreateSliderInt`, `CreateInputField`
+
+**核心优势：**
+- `LocalText` 提供中/英双语，语言切换时自动刷新所有绑定文字
+- `UiRef<T>` 延迟引用，处理 UI 异步创建
+- `settingKey` 参数内置 PlayerPrefs 持久化，无需手动管理
+- `showInGame` 区分游戏内和主菜单设置界面
+- 解决了克隆控件的标签定位、残留文字等问题
+
+> 以下 5.1–5.6 为手写注入原理，使用 Native Settings UI Lib 时无需关心。但理解原理有助于调试。
 
 ### 5.1 注入时机
 
@@ -661,6 +704,8 @@ containsNsfwContent = false
 
 [package.dependencies]
 BepInEx-BepInExPack = "5.4.2304"
+# 可选：如果使用 Native Settings UI Lib 做设置页
+# XiaohaiMod-Native_Settings_UI_Lib = "1.0.1"
 
 [build]
 icon = "./icon.png"
