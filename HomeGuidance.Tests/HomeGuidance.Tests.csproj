@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>HomeGuidance.Tests</AssemblyName>
+    <RootNamespace>HomeGuidance.Tests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="..\HomeGuidance\**" />
+    <None Remove="..\HomeGuidance\**" />
+  </ItemGroup>
+</Project>

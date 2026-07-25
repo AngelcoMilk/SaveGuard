@@ -29,7 +29,9 @@
     <None Remove="decompiled\**" />
     <Compile Remove="tools\**" />
     <None Remove="tools\**" />
-    <None Remove="MoreSlots\**" />
+    <Compile Remove="HomeGuidance\**" />
+    <Compile Remove="HomeGuidance.Tests\**" />
+    <None Remove="HomeGuidance.Tests\**" />
 
     <Reference Include="Assembly-CSharp" HintPath="$(ManagedDir)\Assembly-CSharp.dll" Private="false" />
 

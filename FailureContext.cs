@@ -23,6 +23,7 @@ internal static class FailureContext
     internal static void EndRestart()
     {
         RestartScopeActive = false;
+        SoftFailureOccurred = false;
     }
 
     internal static void BeginGameOverExecution()

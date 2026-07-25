@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
+using Mirror;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -30,8 +31,14 @@ internal static class SettingsUiInjector
             return;
         }
 
-        UISettings.SettingsSection template = sections
-            .FirstOrDefault(s => s?.SectionObj != null && s.TabButton != null);
+        // 仅 Host 和主菜单注入；客户端联机时不显示
+        if (!NetworkServer.active && NetworkClient.active)
+        {
+            return;
+        }
+
+        // 始终取第一个 Section 作为模板——保证是游戏原生分组，不依赖其他 Mod
+        UISettings.SettingsSection template = sections[0];
         if (template?.SectionObj == null || template.TabButton == null)
         {
             Plugin.Log?.LogWarning("Unable to inject SaveGuard settings: no usable settings section template was found.");

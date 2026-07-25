@@ -1,0 +1,9 @@
+{
+    "name": "ExtractionTrail",
+    "version_number": "1.5.1",
+    "website_url": "",
+    "description": "Guides you to extraction points, trucks or carts with a flowing trail of dots. Includes configurable colors and toggle keys.",
+    "dependencies": [
+        "BepInEx-BepInExPack-5.4.2100"
+    ]
+}

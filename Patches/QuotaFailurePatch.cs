@@ -99,26 +99,32 @@ internal static class QuotaFailurePatch
         MethodInfo scopedDeleteSlotMethod = AccessTools.Method(typeof(QuotaFailurePatch), nameof(ScopedDeleteSlot));
         if (deleteSlotMethod == null || scopedDeleteSlotMethod == null)
         {
-            throw new MissingMethodException("Unable to resolve the quota-failure delete call replacement.");
+            Plugin.Log?.LogWarning("Unable to resolve DeleteSlot replacement; quota-failure deletion protection disabled.");
+            return instructions;
         }
 
+        List<CodeInstruction> result = new List<CodeInstruction>();
         int replacements = 0;
         foreach (CodeInstruction instruction in instructions)
         {
             if (instruction.Calls(deleteSlotMethod))
             {
-                instruction.opcode = OpCodes.Call;
-                instruction.operand = scopedDeleteSlotMethod;
+                result.Add(new CodeInstruction(OpCodes.Call, scopedDeleteSlotMethod));
                 replacements++;
             }
-
-            yield return instruction;
+            else
+            {
+                result.Add(instruction);
+            }
         }
 
         if (replacements != 1)
         {
-            throw new InvalidOperationException($"Expected one SaveManager.DeleteSlot call in SvExecuteGameOver, found {replacements}.");
+            Plugin.Log?.LogWarning($"Expected one SaveManager.DeleteSlot call in SvExecuteGameOver, found {replacements}. Deletion protection disabled.");
+            return instructions;
         }
+
+        return result;
     }
 
     private static void ScopedDeleteSlot(SaveManager saveManager, int slot)

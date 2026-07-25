@@ -1,0 +1,28 @@
+[config]
+schemaVersion = "0.0.1"
+
+[package]
+namespace = "AngelcoMilk"
+name = "HomeGuidance"
+versionNumber = "0.1.0"
+description = "Client-side extraction navigation: replaces compass direction with fastest-route arrow and path trail dots."
+websiteUrl = "https://github.com/AngelcoMilk/HomeGuidance"
+containsNsfwContent = false
+
+[package.dependencies]
+BepInEx-BepInExPack = "5.4.2100"
+
+[build]
+icon = "./icon.png"
+readme = "./README.md"
+outdir = "./build"
+
+[[build.copy]]
+source = "./dist"
+target = ""
+
+[publish]
+repository = "https://thunderstore.io"
+communities = ["yapyap"]
+[publish.categories]
+yapyap = ["mods", "client", "ui"]
