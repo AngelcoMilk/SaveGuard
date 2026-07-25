@@ -30,7 +30,8 @@ internal static class SettingsUiInjector
             return;
         }
 
-        UISettings.SettingsSection template = sections[sections.Length - 1];
+        UISettings.SettingsSection template = sections
+            .FirstOrDefault(s => s?.SectionObj != null && s.TabButton != null);
         if (template?.SectionObj == null || template.TabButton == null)
         {
             Plugin.Log?.LogWarning("Unable to inject SaveGuard settings: no usable settings section template was found.");
@@ -135,7 +136,9 @@ internal static class SettingsUiInjector
     private static void BuildControls(Transform content)
     {
         TMP_FontAsset font = UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-            .FirstOrDefault(text => text != null && text.font != null)?.font;
+            .FirstOrDefault(text => text != null && text.font != null)?.font
+            ?? TMP_Settings.defaultFontAsset;
+
         CreateHeader(content, font);
 
         UISettingToggle toggleTemplate = UnityEngine.Object.FindObjectsByType<UISettingToggle>(FindObjectsInactive.Include, FindObjectsSortMode.None)

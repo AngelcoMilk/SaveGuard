@@ -21,10 +21,15 @@
     <Compile Remove="AccurateVoiceInput\**" />
     <Compile Remove="AccurateVoiceInput.Tests\**" />
     <Compile Remove="SaveGuard.Tests\**" />
+    <Compile Remove="MoreSlots\**" />
     <None Remove="analysis\**" />
     <None Remove="AccurateVoiceInput\**" />
     <None Remove="AccurateVoiceInput.Tests\**" />
-    <None Remove="SaveGuard.Tests\**" />
+    <Compile Remove="decompiled\**" />
+    <None Remove="decompiled\**" />
+    <Compile Remove="tools\**" />
+    <None Remove="tools\**" />
+    <None Remove="MoreSlots\**" />
 
     <Reference Include="Assembly-CSharp" HintPath="$(ManagedDir)\Assembly-CSharp.dll" Private="false" />
 
