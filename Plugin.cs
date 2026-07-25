@@ -11,7 +11,7 @@ public sealed class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "com.saveguard.yapyap";
     public const string PluginName = "SaveGuard";
-    public const string PluginVersion = "0.1.1";
+    public const string PluginVersion = "0.1.2";
     internal const string SupportedAssemblyHash = "7b6ef048e716ce4cf87bf5c6f190b3c11d39c50aa18a81467770f13ceed3c542";
 
     internal static Plugin Instance;

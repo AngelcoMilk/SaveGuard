@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed settings injection on client-side multiplayer (tab now only appears for host and main menu)
+- Fixed font fallback for machines where scene text search fails
+- Fixed template selection to always use original game section instead of mod-dependent last section
+- Fixed transpiler exception on method signature mismatch (now logs warning instead of throwing)
+- Fixed `SoftFailureOccurred` state leak when `RestartGame` throws after marking
+
 ## 0.1.1
 
 - Fixed dropdown label showing another mod's text by replacing heuristic text matching with exclusion-based label targeting

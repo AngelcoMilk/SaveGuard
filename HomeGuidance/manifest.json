@@ -1,9 +1,0 @@
-{
-  "name": "HomeGuidance",
-  "version_number": "0.1.0",
-  "website_url": "https://github.com/AngelcoMilk/HomeGuidance",
-  "description": "Client-side extraction navigation with smart route arrow and world trail dots. Replaces compass direction with fastest-route indicator.",
-  "dependencies": [
-    "BepInEx-BepInExPack_YAPYAP-5.4.2100"
-  ]
-}
