@@ -4,6 +4,43 @@
 
 ---
 
+## 0. 典型开发流程
+
+开发一个 YAPYAP Mod 通常按以下步骤推进：
+
+```
+1. 确定目标
+   └→ 你想改什么？Quota 失败行为？物品掉落？UI？
+   
+2. 反编译分析
+   └→ ilspycmd 反编译 Assembly-CSharp.dll
+   └→ 追踪目标方法的调用链，理解 Server/Client 边界
+   
+3. 打补丁
+   └→ 选择 Harmony Patch 类型（Prefix/Transpiler）
+   └→ 注意 Mirror 网络同步和第三方 Mod 兼容
+   
+4. 加设置页（可选）
+   └→ 推荐用 Native Settings UI Lib 一行注入
+   └→ 或参考 §5 手写 SettingsUiInjector
+   
+5. 配置化
+   └→ BepInEx ConfigEntry，游戏内只暴露核心选项
+   
+6. 加 Build Guard
+   └→ 校验 Assembly-CSharp.dll 哈希，游戏更新自动停用
+   
+7. 测试
+   └→ 策略层单元测试 + 运行时 Host/Client 联机测试
+   
+8. 打包发布
+   └→ TCLI 构建 Thunderstore ZIP，GitHub 托管源码
+```
+
+以下章节按上述流程详细展开。可直接跳到对应章节查阅。
+
+---
+
 ## 1. 环境搭建
 
 ### 1.1 必备工具
@@ -572,7 +609,7 @@ Mod 注入时可同样利用此机制：绑定自己的回调到 `OnSettingChang
 
 ## 7. 配置管理
 
-### 6.1 BepInEx 配置
+### 7.1 BepInEx 配置
 
 ```csharp
 ConfigEntry<bool> MyToggle = Config.Bind(
@@ -591,7 +628,7 @@ Config.Bind("Category", "Key", 5,
     new ConfigDescription("描述", new AcceptableValueRange<int>(1, 20)));
 ```
 
-### 6.2 配置文件路径
+### 7.2 配置文件路径
 
 ```
 BepInEx/config/{GUID}.cfg
@@ -599,7 +636,7 @@ BepInEx/config/{GUID}.cfg
 
 GUID 格式：`com.author.modname`
 
-### 6.3 游戏内只暴露必要配置
+### 7.3 游戏内只暴露必要配置
 
 复杂/高级选项放在配置文件里，游戏内只留最常用的 2-3 个开关/下拉。避免界面臃肿。
 
@@ -607,7 +644,7 @@ GUID 格式：`com.author.modname`
 
 ## 8. 兼容性
 
-### 7.1 版本守卫
+### 8.1 版本守卫
 
 对 `Assembly-CSharp.dll` 做 SHA-256 校验，游戏更新后自动停止补丁：
 
@@ -625,7 +662,7 @@ private static bool Validate(string expectedHash)
 }
 ```
 
-### 7.2 与其他 Mod 共存
+### 8.2 与其他 Mod 共存
 
 - **FrogDataLib**：在 `SaveManager.DeleteSlot`、`LoadSlot`、`WriteSlot` 上有 Postfix。如果不想触发其逻辑，用 Transpiler 替换调用点，而不是 Prefix 返回 false。
 - **多个 Mod 注入设置页**：检查 `SectionObj.name` 避免重复注入。
@@ -635,7 +672,7 @@ private static bool Validate(string expectedHash)
 
 ## 9. 测试
 
-### 8.1 策略层单元测试
+### 9.1 策略层单元测试
 
 独立于 Unity 的纯逻辑测试，测试配置归一化、条件判断等：
 
@@ -652,7 +689,7 @@ private static bool Validate(string expectedHash)
 </Project>
 ```
 
-### 8.2 运行时测试清单
+### 9.2 运行时测试清单
 
 - [ ] 模组正常加载，日志无 Harmony 错误
 - [ ] 设置页正确注入，无重复
@@ -667,7 +704,7 @@ private static bool Validate(string expectedHash)
 
 ## 10. 构建与打包
 
-### 9.1 构建脚本
+### 10.1 构建脚本
 
 ```powershell
 # Build-Package.ps1
@@ -687,7 +724,7 @@ try {
 }
 ```
 
-### 9.2 Thunderstore 配置
+### 10.2 Thunderstore 配置
 
 ```toml
 # thunderstore.toml
@@ -723,12 +760,12 @@ communities = ["yapyap"]
 yapyap = ["mods", "host", "qol"]
 ```
 
-### 9.3 图标规格
+### 10.3 图标规格
 
 - 尺寸：256 × 256
 - 格式：PNG
 
-### 9.4 本地测试安装
+### 10.4 本地测试安装
 
 将 `ModName.dll` 复制到：
 ```
@@ -741,7 +778,7 @@ yapyap = ["mods", "host", "qol"]
 
 ## 11. README 规范
 
-### 10.1 必要内容
+### 11.1 必要内容
 
 - 一句话说明模组做什么
 - 功能列表
@@ -751,7 +788,7 @@ yapyap = ["mods", "host", "qol"]
 - 配置文件说明
 - 已知限制
 
-### 10.2 风格建议
+### 11.2 风格建议
 
 - 双语（中文 + English），文件顶部锚点跳转
 - 用 blockquote 和表格增强可读性
