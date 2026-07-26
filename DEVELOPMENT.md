@@ -25,9 +25,8 @@
    └→ 游戏内只暴露核心选项
 
 5. 加设置页（可选）
-   └→ 推荐用 Native Settings UI Lib 声明式注册
+   └→ 参见 §5.0 自建轻量方案，不引入外部依赖
    └→ initialValue 来自 ConfigEntry，onChanged 写回 ConfigEntry
-   └→ 或参考 §5.1–5.6 手写 SettingsUiInjector
    
 6. 加 Build Guard
    └→ 校验 Assembly-CSharp.dll 哈希，游戏更新自动停用
@@ -48,12 +47,9 @@
 |---|---|
 | 新建 Mod 工程 | 本文 §1、§3、§7、§10 |
 | 分析游戏逻辑 | 本文 §2、§4、§6 |
-| 使用 Native Settings UI | 本文 §5.0；需要具体 API 或排错时再读 [`native-settings-ui-reference.md`](native-settings-ui-reference.md) |
-| 手写设置页 | 本文 §5.1–§6.9 |
+| 添加设置页 | 本文 §5.0（推荐），手写细节参考 §5.1–§6.9 |
 | 存档相关 Mod | 本文 §4、§8、§9 |
 | 发布 Thunderstore | 本文 §9–§11 |
-
-`native-settings-ui-reference.md` 是设置页专项参考，不需要在每次 Mod 开发中整份加载；只有配置持久化、`UiRef`、布局或模板故障时才按章节查阅
 
 ---
 
@@ -67,7 +63,7 @@
 | [Harmony](https://github.com/pardeike/Harmony) | 运行时 IL 补丁 |
 | [ilspycmd](https://github.com/icsharpcode/ILSpy) | 反编译游戏程序集 |
 | [.NET SDK](https://dotnet.microsoft.com/) | 编译模组 DLL |
-| [Native Settings UI Lib](https://thunderstore.io/c/yapyap/p/XiaohaiMod/Native_Settings_UI_Lib/) | 设置页注入库（推荐，可替代手写注入） |
+| [Native Settings UI Lib](https://thunderstore.io/c/yapyap/p/XiaohaiMod/Native_Settings_UI_Lib/) | 设置页注入库（复杂需求时选用） |
 | [TCLI](https://github.com/thunderstore-io/thunderstore-cli) | Thunderstore 打包 |
 | [Thunderstore Mod Manager](https://www.overwolf.com/app/thunderstore-thunderstore_mod_manager) | 模组管理和测试 |
 
@@ -798,9 +794,9 @@ private static bool Validate(string expectedHash)
 - [ ] 使用 `preferredSize` 后所有控件布局正确，内容没有超出可见区域
 - [ ] 设置页模板查找失败时日志清楚，核心 Mod 功能不会因此崩溃
 
-**依赖与打包：**
+**如果使用 Native Settings UI Lib：**
 
-- [ ] 未安装 Native Settings UI Lib 时，BepInEx 明确报告缺失硬依赖
+- [ ] 未安装库时，BepInEx 明确报告缺失硬依赖
 - [ ] 安装依赖后加载顺序正确
 - [ ] 自己的发布包中没有重复包含 `Yap_NativeSettingsUI.dll`
 
