@@ -1,26 +1,10 @@
 # 存档守护 (SaveGuard)
 
-<style>
-.lang-toggle { text-align: right; }
-.lang-toggle label { cursor: pointer; padding: 2px 8px; border: 1px solid #666; border-radius: 3px; margin: 0 2px; font-size: 13px; }
-.lang-toggle input { display: none; }
-#zh-tab:checked ~ .lang-toggle .zh-label,
-#en-tab:checked ~ .lang-toggle .en-label { background: #444; color: #fff; border-color: #888; }
-.en-content { display: none; }
-#en-tab:checked ~ .en-content { display: block; }
-#en-tab:checked ~ .zh-content { display: none; }
-#zh-tab:checked ~ .zh-content { display: block; }
-#zh-tab:checked ~ .en-content { display: none; }
-</style>
+[中文](#中文) | [English](#english)
 
-<input type="radio" name="lang" id="zh-tab" checked>
-<input type="radio" name="lang" id="en-tab">
-<div class="lang-toggle">
-  <label class="zh-label" for="zh-tab">中文</label>
-  <label class="en-label" for="en-tab">English</label>
-</div>
+---
 
-<div class="zh-content">
+## 中文
 
 > 为 YAPYAP 提供温和的失败处理——撤离失败物品回收，三夜任务失败不删档
 
@@ -119,12 +103,11 @@ DebugLog = false
 
 `BepInEx` · `Harmony` · `Thunderstore` · `YapYap Graphics Enhancer`
 
-</div>
+---
 
-<div class="en-content">
+## English
 
-
-A gentle safety net for YAPYAP — recover dropped items after a failed extraction, keep your progress when you miss quota
+> A gentle safety net for YAPYAP — recover dropped items after a failed extraction, keep your progress when you miss quota
 
 ---
 
@@ -220,5 +203,3 @@ DebugLog = false
 ### Credits
 
 `BepInEx` · `Harmony` · `Thunderstore` · `YapYap Graphics Enhancer`
-
-</div>
