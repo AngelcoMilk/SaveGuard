@@ -2,7 +2,10 @@
 
 ---
 
-## 中文 (ZH)
+<details open>
+<summary><b>中文 / Chinese</b> (click to switch)</summary>
+
+<br>
 
 > 为 YAPYAP 提供温和的失败处理——撤离失败物品回收，三夜任务失败不删档
 
@@ -101,11 +104,17 @@ DebugLog = false
 
 `BepInEx` · `Harmony` · `Thunderstore` · `YapYap Graphics Enhancer`
 
+</details>
+
 ---
 
-## English
+<details>
+<summary><b>English</b></summary>
 
-> A gentle safety net for YAPYAP — recover dropped items after a failed extraction, keep your progress when you miss quota
+<br>
+
+
+A gentle safety net for YAPYAP — recover dropped items after a failed extraction, keep your progress when you miss quota
 
 ---
 
@@ -201,3 +210,5 @@ DebugLog = false
 ### Credits
 
 `BepInEx` · `Harmony` · `Thunderstore` · `YapYap Graphics Enhancer`
+
+</details>
