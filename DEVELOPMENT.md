@@ -20,24 +20,40 @@
    └→ 选择 Harmony Patch 类型（Prefix/Transpiler）
    └→ 注意 Mirror 网络同步和第三方 Mod 兼容
    
-4. 加设置页（可选）
-   └→ 推荐用 Native Settings UI Lib 一行注入
-   └→ 或参考 §5 手写 SettingsUiInjector
-   
-5. 配置化
-   └→ BepInEx ConfigEntry，游戏内只暴露核心选项
+4. 配置化
+   └→ 先绑定 BepInEx ConfigEntry，确定默认值、范围和权威配置源
+   └→ 游戏内只暴露核心选项
+
+5. 加设置页（可选）
+   └→ 推荐用 Native Settings UI Lib 声明式注册
+   └→ initialValue 来自 ConfigEntry，onChanged 写回 ConfigEntry
+   └→ 或参考 §5.1–5.6 手写 SettingsUiInjector
    
 6. 加 Build Guard
    └→ 校验 Assembly-CSharp.dll 哈希，游戏更新自动停用
    
 7. 测试
-   └→ 策略层单元测试 + 运行时 Host/Client 联机测试
+   └→ 策略层单元测试 + 设置页生命周期测试 + Host/Client 联机测试
    
 8. 打包发布
+   └→ 声明运行时/Thunderstore 依赖
    └→ TCLI 构建 Thunderstore ZIP，GitHub 托管源码
 ```
 
 以下章节按上述流程详细展开。可直接跳到对应章节查阅。
+
+### 0.1 按需文档索引
+
+| 当前任务 | 读取内容 |
+|---|---|
+| 新建 Mod 工程 | 本文 §1、§3、§7、§10 |
+| 分析游戏逻辑 | 本文 §2、§4、§6 |
+| 使用 Native Settings UI | 本文 §5.0；需要具体 API 或排错时再读 [`native-settings-ui-reference.md`](native-settings-ui-reference.md) |
+| 手写设置页 | 本文 §5.1–§6.9 |
+| 存档相关 Mod | 本文 §4、§8、§9 |
+| 发布 Thunderstore | 本文 §9–§11 |
+
+`native-settings-ui-reference.md` 是设置页专项参考，不需要在每次 Mod 开发中整份加载；只有配置持久化、`UiRef`、布局或模板故障时才按章节查阅
 
 ---
 
@@ -64,7 +80,9 @@
 ```
 Assembly-CSharp.dll      # 游戏主逻辑
 Mirror.dll               # 网络框架
-UnityEngine.dll / UnityEngine.CoreModule.dll / UnityEngine.UI.dll
+UnityEngine.dll / UnityEngine.CoreModule.dll
+UnityEngine.UI.dll / UnityEngine.UIModule.dll
+UnityEngine.TextRenderingModule.dll
 Unity.TextMeshPro.dll
 BepInEx/core/BepInEx.dll
 BepInEx/core/0Harmony.dll
@@ -84,6 +102,14 @@ BepInEx/core/0Harmony.dll
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\YAPYAP</GameDir>
+    <ProfileDir Condition="'$(ProfileDir)' == ''">C:\Users\Home\AppData\Roaming\Thunderstore Mod Manager\DataFolder\Yapyap\profiles\Default</ProfileDir>
+    <ManagedDir>$(GameDir)\yapyap_Data\Managed</ManagedDir>
+    <BepInExCore>$(ProfileDir)\BepInEx\core</BepInExCore>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- 排除工作区中其他项目的源码 -->
     <Compile Remove="other-project\**" />
@@ -96,13 +122,30 @@ BepInEx/core/0Harmony.dll
     <Reference Include="0Harmony" HintPath="$(BepInExCore)\0Harmony.dll" Private="false" />
     <Reference Include="UnityEngine" HintPath="$(ManagedDir)\UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UIModule" HintPath="$(ManagedDir)\UnityEngine.UIModule.dll" Private="false" />
     <Reference Include="UnityEngine.UI" HintPath="$(ManagedDir)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(ManagedDir)\UnityEngine.TextRenderingModule.dll" Private="false" />
     <Reference Include="Unity.TextMeshPro" HintPath="$(ManagedDir)\Unity.TextMeshPro.dll" Private="false" />
   </ItemGroup>
 </Project>
 ```
 
-> 如果用到 UI 布局（`TextAnchor` 等），需要额外引用 `UnityEngine.TextRenderingModule.dll`。
+使用 Native Settings UI Lib 时，再增加独立引用；不要把它设为 `Private=true`，也不要把库 DLL 复制进自己的发布包：
+
+```xml
+<PropertyGroup>
+  <!-- 按实际 Mod Manager 安装目录调整，可通过 -p:NativeSettingsUiDir=... 覆盖 -->
+  <NativeSettingsUiDir Condition="'$(NativeSettingsUiDir)' == ''">$(ProfileDir)\BepInEx\plugins\XiaohaiMod-Native_Settings_UI_Lib</NativeSettingsUiDir>
+</PropertyGroup>
+
+<ItemGroup>
+  <Reference Include="Yap_NativeSettingsUI"
+             HintPath="$(NativeSettingsUiDir)\Yap_NativeSettingsUI.dll"
+             Private="false" />
+</ItemGroup>
+```
+
+> Thunderstore 安装目录名可能因 Profile 或 Mod Manager 而不同，以本机 `Yap_NativeSettingsUI.dll` 的实际位置为准。
 
 ---
 
@@ -264,47 +307,40 @@ YAPYAP 使用 JSON 格式，`SaveManager` 封装读写。
 
 ## 5. 设置页注入
 
-### 5.0 推荐：使用 Native Settings UI Lib
+### 5.0 推荐方案：自建轻量 SettingsTab
 
-手写设置页注入涉及模板克隆、标签定位、双语刷新、PlayerPrefs 隔离、游戏内外区分等多个易错点。**推荐直接使用 [Native Settings UI Lib](https://thunderstore.io/c/yapyap/p/XiaohaiMod/Native_Settings_UI_Lib/)**（XiaohaiMod），它把这些全部封装成了简洁 API：
+以下方案吸收了 Native Settings UI Lib 的核心思路，但**不引入外部依赖**，直接内联实现。适合控件数量少（2-4 个）的 Mod。
 
-```csharp
-var tab = NativeSettingsUI.RegisterTab(
-    guid: "com.yourmod.settings",
-    title: new LocalText("TAB", "我的设置", "My Settings"),
-    showInGame: true
-);
+#### 5.0.1 集中注册，单一入口
 
-tab.CreateToggle(
-    id: "Toggle_Enabled",
-    settingKey: "com.yourmod.Enabled",
-    title: new LocalText("TOGGLE", "启用", "Enabled"),
-    initialValue: true,
-    onChanged: v => enabled = v,
-    showInGame: true
-);
+所有 UI 注册收敛到 `Plugin.Awake`，以 `ConfigEntry` 为权威配置源：
 
-tab.CreateDropdownString(
-    id: "Dropdown_Quality",
-    settingKey: "com.yourmod.Quality",
-    title: new LocalText("QUALITY", "品质", "Quality"),
-    options: new[] { "Low", "Medium", "High" },
-    initialValue: "Medium",
-    onChanged: v => quality = v,
-    showInGame: true
-);
+```text
+Plugin.Awake
+  → Config.Bind 创建 ConfigEntry
+  → 从 ConfigEntry.Value 计算合法初始值
+  → RegisterTab（只跑一次）
+  → CreateToggle / CreateDropdown
+  → onChanged 写回 ConfigEntry.Value
 ```
 
-**支持的控件：** `CreateButton`, `CreateLabel`, `CreateToggle`, `CreateDropdownString`, `CreateSliderInt`, `CreateInputField`
+不要在回调里初始化运行时状态，`SetValueNoNotify` 不会触发 `onChanged`。
 
-**核心优势：**
-- `LocalText` 提供中/英双语，语言切换时自动刷新所有绑定文字
-- `UiRef<T>` 延迟引用，处理 UI 异步创建
-- `settingKey` 参数内置 PlayerPrefs 持久化，无需手动管理
-- `showInGame` 区分游戏内和主菜单设置界面
-- 解决了克隆控件的标签定位、残留文字等问题
+#### 5.0.2 克制暴露：只放核心选项
 
-> 以下 5.1–5.6 为手写注入原理，使用 Native Settings UI Lib 时无需关心。但理解原理有助于调试。
+游戏内设置页只放 2-3 个最常用的控件，其余高级选项留在 `BepInEx/config/*.cfg`。多页签、滑块、输入框等复杂需求才考虑引入完整库。
+
+#### 5.0.3 控件模板与上下文隔离
+
+- 模板始终取 `sections[0]` 原生分组，不依赖其他 Mod
+- 客户端联机时不注入设置页（`!NetworkServer.active && NetworkClient.active`）
+- 克隆控件后立即清空 `settingKey`，断开 PlayerPrefs 链路
+- 字体查找失败时 fallback 到 `TMP_Settings.defaultFontAsset`
+- 标签文字用排除法定位：避开 `valueLabel` 和 `dropdown.captionText`
+
+#### 5.0.4 完整实现参考
+
+参见 SaveGuard 的 `SettingsUiInjector.cs`，涵盖 Tab 注入、控件克隆、双语标签、客户端隔离、字体兜底、模板选择等全部细节。
 
 ### 5.1 注入时机
 
@@ -363,13 +399,30 @@ if (sections.Any(s => s.SectionObj?.name == SectionName))
 
 ### 5.6 多语言
 
+手写注入时优先读取游戏当前 Translator，取不到时再回退到系统语言：
+
 ```csharp
 private static string Localized(string chinese, string english)
 {
-    return Application.systemLanguage == SystemLanguage.ChineseSimplified
-        ? chinese : english;
+    SystemLanguage language = Application.systemLanguage;
+
+    if (Service.Get<LocalisationManager>(out var manager) && manager != null)
+    {
+        var translator = manager.CurrentTranslator ?? manager.DefaultTranslator;
+        if (translator != null)
+            language = translator.Language;
+    }
+
+    bool isChinese =
+        language == SystemLanguage.Chinese ||
+        language == SystemLanguage.ChineseSimplified ||
+        language == SystemLanguage.ChineseTraditional;
+
+    return isChinese ? chinese : english;
 }
 ```
+
+如果需要在游戏运行时切换语言后立即刷新，不能只在创建控件时调用一次 `Localized`；还需要监听或轮询语言变化并重新设置文字。Native Settings UI 的 `LocalText` 已封装这一刷新过程
 
 ---
 
@@ -440,16 +493,23 @@ public abstract class UISettingElement<T> : MonoBehaviour
 
 **数据流：**
 
-```
-用户操作 → OnSettingChanged 触发
-  → 原生 Awake 中绑定的 SetXxx 回调（如 SetMasterVolume）
-  → 立即生效 + PlayerPrefs.Save()
+```text
+用户操作
+  → 控件调用 SetValue(newValue)
+  → SetValueInternal → ApplyValue → 更新显示
+  → settingKey 非空时 Save → PlayerPrefs.SetXxx
+  → OnSettingChanged
+  → UISettings 或 Mod 注册的回调应用运行时效果
 
 启动时：
-  → Awake → Initialize → Load → PlayerPrefs.GetXxx(settingKey)
+  → Awake → Initialize
+  → 默认值写入 currentValue
+  → settingKey 非空时 Load → PlayerPrefs.GetXxx
   → ApplyValue → 更新显示
-  → Initialise → ApplyAllSettings → 所有设置生效
+  → Initialise → ApplyAllSettings → 原版设置统一生效
 ```
+
+`PlayerPrefs.SetXxx` 不等于立即刷盘；是否调用 `PlayerPrefs.Save()` 取决于外层设置流程。Mod 不应假设每次控件变化都会同步写入磁盘
 
 ### 6.4 UISettingToggle（开关控件）
 
@@ -480,7 +540,7 @@ public class UISettingToggle : UISettingElement<bool>
 
 **关键点：**
 - `Awake` 中绑定 `toggle.onValueChanged → base.SetValue`，用户点击触发完整流程
-- `SetValue` → `SetValueInternal` → `ApplyValue` → `UpdateValueLabel` + `Save` + `OnSettingChanged`
+- `SetValue` → `SetValueInternal`（`ApplyValue` / `UpdateValueLabel`）→ 非空 key 时 `Save` → `OnSettingChanged`
 - `localisedLabelText` 负责标签多语言，克隆后需销毁该组件并手动设文字
 
 ### 6.5 UISettingDropdown（下拉控件）
@@ -640,6 +700,29 @@ GUID 格式：`com.author.modname`
 
 复杂/高级选项放在配置文件里，游戏内只留最常用的 2-3 个开关/下拉。避免界面臃肿。
 
+### 7.4 ConfigEntry 与设置页映射
+
+设置页应当只是 ConfigEntry 的交互界面，不要再维护一套独立运行时默认值：
+
+```text
+Config.Bind 的默认值
+  → ConfigEntry.Value
+  → 归一化/范围校验
+  → Create* 的 initialValue
+  → onChanged 写回 ConfigEntry.Value
+  → 功能逻辑始终读取 ConfigEntry 或已同步的运行时状态
+```
+
+规则：
+
+- 注册 UI 前先完成所有 `Config.Bind`
+- Dropdown 的 ConfigEntry 值必须先验证是否在 options 中
+- Slider 的 ConfigEntry 值先 clamp 到 min/max
+- Input 使用 ConfigEntry 时传空 key，避免旧 PlayerPrefs 覆盖初始文字
+- Native Settings UI 初始化不会触发 `onChanged`，功能状态不能依赖首次回调
+- 外部代码修改 ConfigEntry 后，现有 UI 不会自动同步；保存 `UiRef<T>` 手动刷新，或等待新的 UI context
+- 恢复默认按钮需要同时考虑 ConfigEntry、当前运行时状态和已显示的 UI
+
 ---
 
 ## 8. 兼容性
@@ -665,7 +748,7 @@ private static bool Validate(string expectedHash)
 ### 8.2 与其他 Mod 共存
 
 - **FrogDataLib**：在 `SaveManager.DeleteSlot`、`LoadSlot`、`WriteSlot` 上有 Postfix。如果不想触发其逻辑，用 Transpiler 替换调用点，而不是 Prefix 返回 false。
-- **多个 Mod 注入设置页**：检查 `SectionObj.name` 避免重复注入。
+- **多个 Mod 注入设置页**：使用 Native Settings UI 时保证 Tab guid 和控件 id 带 Mod 前缀且每进程只注册一次；手写注入时检查 `SectionObj.name` 避免重复。
 - **More Inventory Slots**：修改了 `PawnInventory` 的槽位数量，相关补丁注意不冲突。
 
 ---
@@ -691,14 +774,35 @@ private static bool Validate(string expectedHash)
 
 ### 9.2 运行时测试清单
 
-- [ ] 模组正常加载，日志无 Harmony 错误
-- [ ] 设置页正确注入，无重复
-- [ ] 控件标签文字正确，无其他 Mod 残留
-- [ ] 配置修改后重启游戏保持
-- [ ] 核心功能触发（Quota 失败 / 撤离失败）
+**基础：**
+
+- [ ] 模组正常加载，日志无依赖或 Harmony 错误
+- [ ] 核心功能触发（Quota 失败 / 撤离失败等）
 - [ ] 多人 Host + Client 联机
 - [ ] 与其他常用 Mod 共存无报错
 - [ ] 存档文件对比（操作前后）
+
+**设置页：**
+
+- [ ] 主菜单设置页正确注入，Tab 和控件没有重复
+- [ ] `showInGame=true/false` 在游戏内 context 表现符合预期
+- [ ] Toggle、Dropdown、Slider、Input 修改后 ConfigEntry 正确更新
+- [ ] 初始化时不依赖 `onChanged` 回调，功能状态已经正确
+- [ ] 重启游戏后 ConfigEntry 值和控件初始显示一致
+- [ ] Dropdown 的保存值始终存在于 options 中
+- [ ] Input 不会被旧 PlayerPrefs 意外覆盖
+- [ ] 中文/英文切换时 Tab、标题、Button、Label 正确刷新
+- [ ] Dropdown options 不自动刷新这一限制已被 UI 文案或设计接受
+- [ ] 进入新场景或新 UI context 后 `UiRef.Ready` 重复触发不会造成副作用
+- [ ] 回调只执行一次，没有重复 `Create*` 导致的监听叠加
+- [ ] 使用 `preferredSize` 后所有控件布局正确，内容没有超出可见区域
+- [ ] 设置页模板查找失败时日志清楚，核心 Mod 功能不会因此崩溃
+
+**依赖与打包：**
+
+- [ ] 未安装 Native Settings UI Lib 时，BepInEx 明确报告缺失硬依赖
+- [ ] 安装依赖后加载顺序正确
+- [ ] 自己的发布包中没有重复包含 `Yap_NativeSettingsUI.dll`
 
 ---
 
@@ -741,7 +845,7 @@ containsNsfwContent = false
 
 [package.dependencies]
 BepInEx-BepInExPack = "5.4.2304"
-# 可选：如果使用 Native Settings UI Lib 做设置页
+# 使用 Native Settings UI Lib 时必须取消下一行注释；未使用则保持删除/注释
 # XiaohaiMod-Native_Settings_UI_Lib = "1.0.1"
 
 [build]
@@ -759,6 +863,14 @@ communities = ["yapyap"]
 [publish.categories]
 yapyap = ["mods", "host", "qol"]
 ```
+
+使用 Native Settings UI Lib 时发布前检查：
+
+- `thunderstore.toml` 已启用 `XiaohaiMod-Native_Settings_UI_Lib = "1.0.1"`
+- 插件类已有 `[BepInDependency("com.yapyap.nativesettingsui", HardDependency)]`
+- `.csproj` 对库的引用为 `Private=false`
+- `dist/` 和最终 ZIP 中只有自己的 Mod DLL，没有 `Yap_NativeSettingsUI.dll`
+- README 的安装说明注明该库由 Mod Manager 自动安装
 
 ### 10.3 图标规格
 
@@ -782,10 +894,10 @@ yapyap = ["mods", "host", "qol"]
 
 - 一句话说明模组做什么
 - 功能列表
-- 游戏内设置说明（如有）
-- 安装方式
+- 游戏内设置说明（如有），注明哪些选项只能在主菜单修改
+- 安装方式与前置依赖；使用 Native Settings UI Lib 时注明由 Mod Manager 自动安装
 - 联机说明（Host / Client 要求）
-- 配置文件说明
+- 配置文件说明，明确使用 BepInEx cfg 还是 PlayerPrefs
 - 已知限制
 
 ### 11.2 风格建议
@@ -806,9 +918,16 @@ yapyap = ["mods", "host", "qol"]
 | `DeleteSlot` 拦截不完整 | 第三方 Postfix 仍执行 | Transpiler 替换调用点 |
 | `CS1525: 表达式项"ref"无效` | SDK 捡到分析目录的反编译文件 | csproj 加 `Compile Remove` |
 | 构建时 `AssemblyInfo` 重复 | 工作区多个项目的 `obj/` 冲突 | 清理 `obj/bin`，排除其他项目 |
-| 设置页重复注入 | 未检查已存在 | 检查 `SectionObj.name` |
+| Native Settings UI 回调执行多次 | 重复 `Create*` 或 UI 已存在后逐个追加控件 | 每个 guid/id 只注册一次，并在 `Awake` 集中注册 |
+| `UiRef.Ready` 没有执行初始化代码 | UI 已存在，事件在 `Create*` 返回前已触发 | 先检查 `UiRef.Value`，再订阅可重复执行的 Ready 处理函数 |
+| Toggle/Slider 重启后恢复默认 | 只传了 settingKey，未从配置源计算 initialValue | 用 ConfigEntry/PlayerPrefs 读取值后传给 initialValue |
+| Input 显示旧文字 | 非空 key 从 PlayerPrefs 覆盖了 ConfigEntry 初始值 | ConfigEntry 模式下给 Input 传空 key |
+| 下拉显示和值不一致 | initialValue 不在 options 中 | 注册前归一化 ConfigEntry 值 |
+| 整个 Tab 布局突然改变 | 任一 definition 设置了 preferredSize | 按 Tab 级布局检查全部控件，包括游戏内隐藏项 |
+| Native Settings UI 整个 Tab 不出现 | 固定模板/路径未找到或控制器超过 60 帧才出现 | 查 `templates not found` 日志，按详细参考排查 UI 版本 |
+| 手写设置页重复注入 | 未检查已存在 | 检查 `SectionObj.name` |
 | 游戏更新后静默破坏存档 | 补丁假设未更新 | Build Guard 哈希校验 |
 
 ---
 
-*最后更新：2026-07-25 · 基于 SaveGuard v0.1.1 开发过程编写*
+*最后更新：2026-07-26 · 基于 SaveGuard v0.1.2 与 Native Settings UI Lib 1.0.1 审计结果编写*
