@@ -1,13 +1,10 @@
 # 存档守护 (SaveGuard)
 
-<p align="center">
-  <a href="#zh">中文</a> | <a href="#en">English</a>
-</p>
+[中文](#中文-zh) | [English](#english)
 
 ---
 
-<a id="zh"></a>
-## 中文
+## 中文 (ZH)
 
 > 为 YAPYAP 提供温和的失败处理——撤离失败物品回收，三夜任务失败不删档
 
@@ -108,7 +105,6 @@ DebugLog = false
 
 ---
 
-<a id="en"></a>
 ## English
 
 > A gentle safety net for YAPYAP — recover dropped items after a failed extraction, keep your progress when you miss quota
