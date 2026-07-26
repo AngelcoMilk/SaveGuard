@@ -2,8 +2,8 @@
 
 ---
 
-<details>
-<summary><b>中文 / Chinese</b> (click to expand)</summary>
+<details open>
+<summary><b>中文 / Chinese</b> (click to expand English)</summary>
 
 <br>
 
@@ -108,8 +108,8 @@ DebugLog = false
 
 ---
 
-<details open>
-<summary><b>English</b></summary>
+<details>
+<summary><b>English</b> (click to expand)</summary>
 
 <br>
 
