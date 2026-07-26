@@ -1,7 +1,5 @@
 # 存档守护 (SaveGuard)
 
-[中文](#中文-zh) | [English](#english)
-
 ---
 
 ## 中文 (ZH)
