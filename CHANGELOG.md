@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Fixed Thunderstore README rendering: switched to details/summary fold layout, Chinese open by default
+- Removed unsupported HTML anchors, CSS toggles, and fragment links incompatible with Thunderstore renderer
+
 ## 0.1.2
 
 - Fixed settings injection on client-side multiplayer (tab now only appears for host and main menu)
