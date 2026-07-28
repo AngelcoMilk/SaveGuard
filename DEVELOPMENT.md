@@ -49,7 +49,7 @@
 | 分析游戏逻辑 | 本文 §2、§4、§6 |
 | 添加设置页 | 本文 §5.0（推荐），手写细节参考 §5.1–§6.9 |
 | 存档相关 Mod | 本文 §4、§8、§9 |
-| 发布 Thunderstore | 本文 §9–§11 |
+| 发布 Thunderstore | 本文 §9–§11（README 与开发日志规范在 §11） |
 
 ---
 
@@ -884,25 +884,115 @@ yapyap = ["mods", "host", "qol"]
 
 ---
 
-## 11. README 规范
+## 11. README 与 开发日志规范
 
-### 11.1 必要内容
+### 11.1 README 必要内容
 
 - 一句话说明模组做什么
 - 功能列表
 - 游戏内设置说明（如有），注明哪些选项只能在主菜单修改
-- 安装方式与前置依赖；使用 Native Settings UI Lib 时注明由 Mod Manager 自动安装
+- 安装方式与前置依赖
 - 联机说明（Host / Client 要求）
-- 配置文件说明，明确使用 BepInEx cfg 还是 PlayerPrefs
+- 配置文件说明
 - 已知限制
 
-### 11.2 风格建议
+### 11.2 README 排版规范
 
-- 双语（中文 + English），文件顶部锚点跳转
-- 用 blockquote 和表格增强可读性
-- 不用 emoji 图标（跨平台渲染不一致）
-- 不用句号结尾（中文列表项）
-- 不用作者署名放在 README 正文（Thunderstore 已有 `namespace` 标识）
+**双语排版：**
+
+- 中文在上、英文在下，顺序排列
+- 中文标题 `## 中文 (ZH)`，英文标题 `## English`
+- 中间用 `---` 分隔
+- Thunderstore 不支持锚点跳转、HTML anchor、`<style>`、`<details>` 折叠——不要尝试
+- GitHub 可用 `<details>` 折叠，但不强制
+
+**标点与格式：**
+
+- 中文段落不用句号结尾（列表项、短句）
+- 英文正常使用标点
+- 用 `>` blockquote 突出关键信息
+- 用表格对齐数值类信息、设置项说明
+- 用 `` ` `` 反引号包裹键名、路径、配置值
+- 不用 emoji 图标（Thunderstore/GitHub 渲染不一致）
+- 不用作者署名放在 README 正文（Thunderstore `namespace` 已标识作者）
+
+**配置文件代码块：**
+
+用 `ini` 代码块展示 `.cfg` 文件，每段加中文注释：
+
+```ini
+## 任务失败保档
+[Quota Failure]
+ProtectSave = true
+
+## 物品回收率（可选值：0, 25, 50, 75, 100）
+[Recovery]
+RecoveryPercent = 100
+```
+
+### 11.3 开发日志（CHANGELOG）规范
+
+**每个版本必须写开发日志。** 文件：仓库根目录 `CHANGELOG.md`，打包进 Thunderstore ZIP 后显示在模组页面的 "Changelog" 标签页。
+
+**格式：**
+
+```markdown
+# Changelog
+
+## 0.1.2
+
+- 修复了 xxx（一句话描述改动）
+- 新增了 xxx
+- 移除了 xxx
+
+## 0.1.1
+
+- ...
+```
+
+**规则：**
+
+- 标题 `# Changelog`，每个版本用 `## 版本号`
+- 版本号从新到旧排列
+- 每条用 `-` 开头，一句话说清楚
+- **用英文写**——Thunderstore 的 Changelog 页签没有双语支持
+- 每条以动词过去式开头：`Fixed`、`Added`、`Changed`、`Removed`
+- 只写用户可感知的改动，内部重构（如变量重命名、代码清理）不写入
+- 不要写"见 GitHub commit"或"详见 README"，日志应该自包含
+
+**示例：**
+
+```markdown
+# Changelog
+
+## 0.1.3
+
+- Fixed Thunderstore README rendering: switched to details/summary fold layout
+- Removed unsupported HTML anchors and CSS toggles incompatible with Thunderstore renderer
+
+## 0.1.2
+
+- Fixed settings injection on client-side multiplayer
+- Fixed font fallback for machines where scene text search fails
+- Fixed template selection to always use original game section
+- Fixed transpiler exception on method signature mismatch
+- Fixed `SoftFailureOccurred` state leak when `RestartGame` throws
+
+## 0.1.1
+
+- Fixed dropdown label showing another mod's text
+- Changed in-game setting labels
+- Removed in-game emergency backup toggle
+- Preserved full Game Over flow with call-site deletion suppression
+```
+
+### 11.4 README 发布前检查清单
+
+- [ ] 中文和英文版本内容一致
+- [ ] 配置文件代码块与实际 `Config.Bind` 默认值一致
+- [ ] 安装步骤在实际环境中验证过
+- [ ] 联机说明准确（Host 必须/客户端可选）
+- [ ] 已知限制已列出当前版本的边界情况
 
 ---
 
@@ -926,4 +1016,4 @@ yapyap = ["mods", "host", "qol"]
 
 ---
 
-*最后更新：2026-07-26 · 基于 SaveGuard v0.1.2 与 Native Settings UI Lib 1.0.1 审计结果编写*
+*最后更新：2026-07-28 · 基于 SaveGuard v0.1.3 开发过程编写*
