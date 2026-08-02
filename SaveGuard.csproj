@@ -7,6 +7,7 @@
     <RootNamespace>SaveGuard</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,24 +18,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="analysis\**" />
-    <Compile Remove="AccurateVoiceInput\**" />
-    <Compile Remove="AccurateVoiceInput.Tests\**" />
-    <Compile Remove="SaveGuard.Tests\**" />
-    <Compile Remove="MoreSlots\**" />
-    <None Remove="analysis\**" />
-    <None Remove="AccurateVoiceInput\**" />
-    <None Remove="AccurateVoiceInput.Tests\**" />
-    <Compile Remove="decompiled\**" />
-    <None Remove="decompiled\**" />
-    <Compile Remove="tools\**" />
-    <None Remove="tools\**" />
-    <Compile Remove="HomeGuidance\**" />
-    <Compile Remove="HomeGuidance.Tests\**" />
-    <None Remove="HomeGuidance.Tests\**" />
+    <Compile Include="Plugin.cs" />
+    <Compile Include="CompatibilityGuard.cs" />
+    <Compile Include="FailureContext.cs" />
+    <Compile Include="SaveBackupService.cs" />
+    <Compile Include="SaveGuardPolicy.cs" />
+    <Compile Include="SettingsUiInjector.cs" />
+    <Compile Include="Patches\*.cs" />
+    <Compile Include="Properties\*.cs" />
 
     <Reference Include="Assembly-CSharp" HintPath="$(ManagedDir)\Assembly-CSharp.dll" Private="false" />
-
     <Reference Include="Mirror" HintPath="$(ManagedDir)\Mirror.dll" Private="false" />
     <Reference Include="BepInEx" HintPath="$(BepInExCore)\BepInEx.dll" Private="false" />
     <Reference Include="0Harmony" HintPath="$(BepInExCore)\0Harmony.dll" Private="false" />
