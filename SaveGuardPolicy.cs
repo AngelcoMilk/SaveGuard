@@ -29,8 +29,8 @@ internal static class SaveGuardPolicy
         return enabled && scopeActive && !reachedQuota;
     }
 
-    internal static bool ShouldSuppressGameOverDelete(bool enabled, bool softFailureOccurred, bool executionScope)
+    internal static bool ShouldSuppressGameOverDelete(bool enabled, bool quotaFailurePending, bool executionScope)
     {
-        return enabled && softFailureOccurred && executionScope;
+        return enabled && quotaFailurePending && executionScope;
     }
 }

@@ -31,4 +31,52 @@ Equal(false, SaveGuardPolicy.ShouldSuppressGameOverDelete(true, true, false), "M
 Equal(false, SaveGuardPolicy.ShouldSuppressGameOverDelete(true, false, true), "Other game over unaffected");
 Equal(false, SaveGuardPolicy.ShouldSuppressGameOverDelete(false, true, true), "Protection disabled delete native");
 
-Console.WriteLine("SaveGuard policy tests passed.");
+FailureContext.Reset();
+FailureContext.BeginRestart(reachedQuota: false, protectQuotaFailure: true);
+Equal(true, FailureContext.RestartScopeActive, "Failed quota restart scope begins");
+Equal(true, FailureContext.QuotaFailurePending, "Failed quota restart immediately arms deletion protection");
+FailureContext.EndRestart();
+Equal(false, FailureContext.RestartScopeActive, "Restart scope ends after soft reset");
+Equal(true, FailureContext.QuotaFailurePending, "Soft failure survives RestartGame completion");
+FailureContext.BeginGameOverExecution();
+Equal(true, FailureContext.GameOverExecutionScope, "Delayed Game Over inherits soft failure");
+Equal(true, SaveGuardPolicy.ShouldSuppressGameOverDelete(
+    enabled: true,
+    quotaFailurePending: FailureContext.QuotaFailurePending,
+    executionScope: FailureContext.GameOverExecutionScope), "Delayed Game Over deletion is suppressed");
+FailureContext.EndGameOverExecution();
+Equal(false, FailureContext.QuotaFailurePending, "Game Over completion clears soft failure");
+Equal(false, FailureContext.GameOverExecutionScope, "Game Over completion clears execution scope");
+
+FailureContext.BeginRestart(reachedQuota: false, protectQuotaFailure: true);
+FailureContext.AbortRestart();
+Equal(false, FailureContext.RestartScopeActive, "Restart exception clears restart scope");
+Equal(true, FailureContext.QuotaFailurePending, "Restart exception preserves queued deletion protection");
+Equal(false, FailureContext.GameOverExecutionScope, "Restart exception clears active Game Over scope");
+FailureContext.BeginGameOverExecution();
+Equal(true, FailureContext.GameOverExecutionScope, "Queued Game Over inherits post-exception protection");
+Equal(true, SaveGuardPolicy.ShouldSuppressGameOverDelete(
+    enabled: true,
+    quotaFailurePending: FailureContext.QuotaFailurePending,
+    executionScope: FailureContext.GameOverExecutionScope), "Post-exception Game Over deletion is suppressed");
+FailureContext.EndGameOverExecution();
+Equal(false, FailureContext.QuotaFailurePending, "Post-exception Game Over consumes protection");
+
+FailureContext.BeginRestart(reachedQuota: false, protectQuotaFailure: true);
+FailureContext.AbortRestart();
+FailureContext.BeginRestart(reachedQuota: true, protectQuotaFailure: true);
+Equal(false, FailureContext.RestartScopeActive, "Successful quota keeps native restart scope");
+Equal(false, FailureContext.QuotaFailurePending, "Successful quota clears pending post-exception protection");
+
+FailureContext.BeginRestart(reachedQuota: false, protectQuotaFailure: true);
+FailureContext.AbortRestart();
+FailureContext.BeginRestart(reachedQuota: false, protectQuotaFailure: false);
+Equal(false, FailureContext.RestartScopeActive, "Disabled protection keeps native restart scope");
+Equal(false, FailureContext.QuotaFailurePending, "Disabled protection clears pending protection");
+
+FailureContext.BeginRestart(reachedQuota: false, protectQuotaFailure: true);
+FailureContext.AbortRestart();
+FailureContext.Reset();
+Equal(false, FailureContext.QuotaFailurePending, "Server reset clears pending protection");
+
+Console.WriteLine("SaveGuard policy and lifecycle tests passed.");

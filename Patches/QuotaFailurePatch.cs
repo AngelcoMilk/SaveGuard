@@ -22,7 +22,7 @@ internal static class QuotaFailurePatch
     [HarmonyPrefix]
     private static void RestartGamePrefix(GameManager __instance, bool reachedQuota)
     {
-        FailureContext.BeginRestart(reachedQuota);
+        FailureContext.BeginRestart(reachedQuota, Plugin.ProtectQuotaFailure.Value);
         if (FailureContext.RestartScopeActive)
         {
             SaveBackupService.TryCreateQuotaFailureBackup(__instance);
@@ -40,7 +40,10 @@ internal static class QuotaFailurePatch
     [HarmonyFinalizer]
     private static Exception RestartGameFinalizer(Exception __exception)
     {
-        FailureContext.EndRestart();
+        if (__exception != null)
+        {
+            FailureContext.AbortRestart();
+        }
         return __exception;
     }
 
@@ -64,7 +67,6 @@ internal static class QuotaFailurePatch
         __instance.NetworkcurrentGameState = GameManager.GameState.Lobby;
         __instance.NetworkcurrentRound = 0;
         __instance.NetworktotalScore = 0;
-        FailureContext.MarkSoftFailure();
         Plugin.Log?.LogInfo("Quota failure converted to a soft reset: save, gold, inventory, quota tier, hub and grimoire were preserved.");
         return false;
     }
@@ -131,7 +133,7 @@ internal static class QuotaFailurePatch
     {
         bool suppress = SaveGuardPolicy.ShouldSuppressGameOverDelete(
             Plugin.ProtectQuotaFailure.Value,
-            FailureContext.SoftFailureOccurred,
+            FailureContext.QuotaFailurePending,
             FailureContext.GameOverExecutionScope);
 
         if (suppress && slot == saveManager.CurrentSlot)

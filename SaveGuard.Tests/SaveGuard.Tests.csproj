@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../FailureContext.cs" Link="FailureContext.cs" />
     <Compile Include="../SaveGuardPolicy.cs" Link="SaveGuardPolicy.cs" />
   </ItemGroup>
 </Project>

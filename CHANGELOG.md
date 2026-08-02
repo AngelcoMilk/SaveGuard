@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+
+- Fixed a quota-failure regression that could delete the active save slot after the host continued through the Game Over screen
+- Preserved the quota-failure protection token across `RestartGame` until the matching `SvExecuteGameOver` deletion call is safely suppressed
+- Added fail-closed restart exception handling so protected quota failures retain one-time deletion protection even if reset work throws
+- Added lifecycle regression tests covering delayed Game Over execution, successful quota cleanup, disabled protection and restart exceptions
+- Synchronized BepInEx, assembly and Thunderstore package versions for reliable installed-build identification
+
 ## 0.1.3
 
 - Fixed Thunderstore README rendering: switched to details/summary fold layout, Chinese open by default

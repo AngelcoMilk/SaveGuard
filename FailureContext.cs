@@ -3,21 +3,14 @@ namespace SaveGuard;
 internal static class FailureContext
 {
     internal static bool RestartScopeActive { get; private set; }
-    internal static bool SoftFailureOccurred { get; private set; }
+    internal static bool QuotaFailurePending { get; private set; }
     internal static bool GameOverExecutionScope { get; private set; }
 
-    internal static void BeginRestart(bool reachedQuota)
+    internal static void BeginRestart(bool reachedQuota, bool protectQuotaFailure)
     {
-        RestartScopeActive = !reachedQuota && Plugin.ProtectQuotaFailure?.Value == true;
-        if (reachedQuota)
-        {
-            SoftFailureOccurred = false;
-        }
-    }
-
-    internal static void MarkSoftFailure()
-    {
-        SoftFailureOccurred = true;
+        RestartScopeActive = !reachedQuota && protectQuotaFailure;
+        QuotaFailurePending = RestartScopeActive;
+        GameOverExecutionScope = false;
     }
 
     internal static void EndRestart()
@@ -25,21 +18,27 @@ internal static class FailureContext
         RestartScopeActive = false;
     }
 
+    internal static void AbortRestart()
+    {
+        RestartScopeActive = false;
+        GameOverExecutionScope = false;
+    }
+
     internal static void BeginGameOverExecution()
     {
-        GameOverExecutionScope = SoftFailureOccurred;
+        GameOverExecutionScope = QuotaFailurePending;
     }
 
     internal static void EndGameOverExecution()
     {
         GameOverExecutionScope = false;
-        SoftFailureOccurred = false;
+        QuotaFailurePending = false;
     }
 
     internal static void Reset()
     {
         RestartScopeActive = false;
-        SoftFailureOccurred = false;
+        QuotaFailurePending = false;
         GameOverExecutionScope = false;
     }
 }
